@@ -2,55 +2,20 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>管理员上传面板</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设计师私有后台</title>
 <style>
 *{box-sizing:border-box;font-family:system-ui}
-body{background:#111;color:#fff;padding:40px;max-width:600px;margin:0 auto}
-.upload-box{border:1px solid #444;padding:30px;border-radius:12px}
-#file{margin:20px 0}
-button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer}
-#result{margin-top:20px;color:#94a3b8;word-break:break-all}
+body{max-width:600px;margin:40px auto;padding:0 20px}
+.box{border:1px solid #eee;border-radius:12px;padding:24px}
+h3{margin-top:0}
+.tip{color:#666;font-size:14px}
 </style>
 </head>
 <body>
-<div class="upload-box">
-  <h3>作品图片上传</h3>
-  <input type="file" id="file" accept="image/jpeg,image/png,image/webp">
-  <button onclick="upload()">开始上传</button>
-  <div id="result"></div>
+<div class="box">
+<h3>私有后台</h3>
+<p class="tip">上传功能暂未开放，后续开启。</p>
 </div>
-
-<script>
-const TOKEN = "w7650301";
-async function upload(){
-  const resultDom = document.getElementById("result");
-  const fileInput = document.getElementById("file");
-  const file = fileInput.files[0];
-  if(!file){
-    resultDom.innerText="请先选择图片";
-    return;
-  }
-  const formData = new FormData();
-  formData.append("file", file);
-  resultDom.innerText="上传中...";
-  try{
-    const res = await fetch("/api/upload",{
-      method:"POST",
-      headers:{
-        "X-Admin-Token": TOKEN
-      },
-      body: formData
-    })
-    const data = await res.json();
-    if(data.success){
-      resultDom.innerHTML = `✅ 上传成功<br>图片地址：${data.url}`;
-    }else{
-      resultDom.innerText = `❌ ${data.msg}`;
-    }
-  }catch(e){
-    resultDom.innerText = "上传失败："+e.message;
-  }
-}
-</script>
 </body>
 </html>
