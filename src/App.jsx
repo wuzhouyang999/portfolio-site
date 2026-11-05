@@ -1,15 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import ImageLightbox from './components/ImageLightbox'
-import DeploymentExporter from './components/DeploymentExporter'
-import PortfolioManager from './components/PortfolioManager'
-import LivingPortrait from './components/LivingPortrait'
-import ShowcaseManager from './components/ShowcaseManager'
-import SimpleCursor from './components/SimpleCursor'
 import { siteConfig } from './config/site'
 import { generatedProjects } from './content/generatedContent'
-import { useAboutPortrait } from './hooks/useAboutPortrait'
-import { usePortfolioLibrary } from './hooks/usePortfolioLibrary'
-import { useShowcaseLibrary } from './hooks/useShowcaseLibrary'
+import SimpleCursor from './components/SimpleCursor'
 
 const strengths = [
   {
@@ -138,7 +131,7 @@ function ShowcaseMedia({ item, autoplay = false }) {
   return <img src={item.src} alt={item.alt || ''} loading="lazy" />
 }
 
-function ProjectMarquee({ config, items: sourceItems, onEdit, loading }) {
+function ProjectMarquee({ config, items: sourceItems }) {
   const sectionRef = useRef(null)
   const rowOneRef = useRef(null)
   const rowTwoRef = useRef(null)
@@ -187,9 +180,6 @@ function ProjectMarquee({ config, items: sourceItems, onEdit, loading }) {
         <span>{config.label}</span>
         <div className="marquee-label-actions">
           <span>{config.caption}</span>
-          <button type="button" onClick={onEdit} disabled={loading}>
-            {loading ? '读取中' : '编辑轮播'}
-          </button>
         </div>
       </div>
       <div className="marquee-window">
@@ -214,26 +204,13 @@ function ProjectMarquee({ config, items: sourceItems, onEdit, loading }) {
 }
 
 function App() {
-  const exportMode = new URLSearchParams(window.location.search).has('export')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [managerOpen, setManagerOpen] = useState(false)
-  const [showcaseManagerOpen, setShowcaseManagerOpen] = useState(false)
   const [imageGallery, setImageGallery] = useState(null)
-  const [pendingUpload, setPendingUpload] = useState(null)
-  const [projectDragActive, setProjectDragActive] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const heroRef = useRef(null)
-  const portfolio = usePortfolioLibrary()
-  const showcase = useShowcaseLibrary(siteConfig.showcase.items)
-  const aboutPortrait = useAboutPortrait(siteConfig.aboutPortrait.src)
 
-  const localProjectIds = new Set(portfolio.projects.map((project) => project.id))
-  const visibleProjects = [
-    ...portfolio.projects,
-    ...generatedProjects.filter((project) => !localProjectIds.has(project.id)),
-  ]
-  const allProjects = visibleProjects.map((project, index) => ({
+  const allProjects = generatedProjects.map((project, index) => ({
     ...project,
     number: String(index + 1).padStart(2, '0'),
     subtitle: project.subtitle || project.category,
@@ -367,7 +344,7 @@ function App() {
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('resize', handleScroll)
     }
-  }, [portfolio.projects.length, reducedMotion])
+  }, [reducedMotion])
 
   useEffect(() => {
     document.body.classList.toggle('menu-open', menuOpen)
@@ -375,20 +352,6 @@ function App() {
   }, [menuOpen])
 
   const closeMenu = () => setMenuOpen(false)
-  const openProjectManager = (files = []) => {
-    const validFiles = Array.from(files).filter((file) => file.type.startsWith('image/'))
-    setPendingUpload({
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      files: validFiles,
-    })
-    setProjectDragActive(false)
-    setManagerOpen(true)
-  }
-  const closeProjectManager = () => {
-    setManagerOpen(false)
-    setPendingUpload(null)
-    setProjectDragActive(false)
-  }
 
   return (
     <>
@@ -539,9 +502,7 @@ function App() {
 
         <ProjectMarquee
           config={siteConfig.showcase}
-          items={showcase.items}
-          loading={showcase.loading}
-          onEdit={() => setShowcaseManagerOpen(true)}
+          items={siteConfig.showcase.items}
         />
 
         <section className="section about" id="about">
@@ -568,14 +529,7 @@ function App() {
             <div className="about-layout">
               <div className="about-visual" data-reveal>
                 <div className="about-living-stage">
-                  <LivingPortrait
-                    src={aboutPortrait.src}
-                    isCustomized={aboutPortrait.isCustomized}
-                    saving={aboutPortrait.saving}
-                    error={aboutPortrait.error}
-                    onUploadPhoto={aboutPortrait.uploadPortrait}
-                    onResetPhoto={aboutPortrait.resetPortrait}
-                  />
+                  <img src={siteConfig.aboutPortrait.src} alt="吴周杨" />
                 </div>
                 <div className="portrait-meta" aria-hidden="true">
                   <span>26°39′N</span>
@@ -736,23 +690,10 @@ function App() {
                   <br />
                   记录人与空间共同生长的过程。
                 </p>
-                <button
-                  className="manage-projects-button"
-                  type="button"
-                  onClick={() => openProjectManager()}
-                >
-                  <span>+</span>
-                  上传我的作品
-                </button>
               </div>
             </div>
 
-            {portfolio.loading ? (
-              <div className="project-empty-state is-loading" role="status">
-                <span className="project-empty-kicker">LOADING / 作品库</span>
-                <p>正在读取这台设备上的作品…</p>
-              </div>
-            ) : allProjects.length > 0 ? (
+            {allProjects.length > 0 ? (
               <div className="project-stack">
                 {allProjects.map((project, index) => {
                   const images = project.images.length
@@ -865,58 +806,21 @@ function App() {
                 })}
               </div>
             ) : (
-              <div
-                className={`project-empty-state ${projectDragActive ? 'is-dragging' : ''}`}
-                onDragEnter={(event) => {
-                  event.preventDefault()
-                  setProjectDragActive(true)
-                }}
-                onDragOver={(event) => event.preventDefault()}
-                onDragLeave={(event) => {
-                  if (!event.currentTarget.contains(event.relatedTarget)) {
-                    setProjectDragActive(false)
-                  }
-                }}
-                onDrop={(event) => {
-                  event.preventDefault()
-                  openProjectManager(event.dataTransfer.files)
-                }}
-              >
+              <div className="project-empty-state">
                 <div className="project-empty-mark" aria-hidden="true">
                   <span>01</span>
                   <i />
                   <span>YOUR WORK</span>
                 </div>
                 <div className="project-empty-content">
-                  <span className="project-empty-kicker">LOCAL GALLERY / 直接上传</span>
+                  <span className="project-empty-kicker">LOCAL GALLERY</span>
                   <h3>
-                    从第一件作品
+                    作品即将展示
                     <br />
-                    开始。
                   </h3>
                   <p>
-                    拖入项目图片或点击选择。图片会在压缩后保存到当前浏览器，
-                    并为它补充名称、分类与项目信息。
+                    作品集内容待设计师后续更新。
                   </p>
-                  <label className="project-direct-upload">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(event) => openProjectManager(event.target.files)}
-                    />
-                    <span>+</span>
-                    <strong>拖入图片，或点击选择</strong>
-                    <small>JPG / PNG / WEBP · 最多 12 张 · 单张不超过 25MB</small>
-                  </label>
-                  <button
-                    className="project-empty-secondary"
-                    type="button"
-                    onClick={() => openProjectManager()}
-                  >
-                    先填写项目信息
-                    <Arrow />
-                  </button>
                 </div>
               </div>
             )}
@@ -927,9 +831,6 @@ function App() {
                 概念沟通 → 空间规划 → 材质系统 → 图纸深化 → 现场落地
               </p>
               <span className="project-notes-line" />
-              <button type="button" onClick={() => openProjectManager()}>
-                管理 / 上传作品
-              </button>
             </div>
           </div>
         </section>
@@ -1084,31 +985,6 @@ function App() {
         </section>
       </main>
 
-      <PortfolioManager
-        open={managerOpen}
-        onClose={closeProjectManager}
-        initialFiles={pendingUpload?.files || []}
-        uploadSession={pendingUpload?.id}
-        projects={portfolio.projects}
-        saving={portfolio.saving}
-        error={portfolio.error}
-        onCreate={portfolio.createProject}
-        onUpdate={portfolio.updateProject}
-        onDelete={portfolio.deleteProject}
-        onMove={portfolio.moveProject}
-      />
-      <ShowcaseManager
-        open={showcaseManagerOpen}
-        onClose={() => setShowcaseManagerOpen(false)}
-        items={showcase.items}
-        isCustomized={showcase.isCustomized}
-        saving={showcase.saving}
-        error={showcase.error}
-        onAddMedia={showcase.addMedia}
-        onDeleteMedia={showcase.deleteMedia}
-        onMoveMedia={showcase.moveMedia}
-        onResetMedia={showcase.resetMedia}
-      />
       <ImageLightbox
         gallery={imageGallery}
         onClose={() => setImageGallery(null)}
@@ -1116,7 +992,6 @@ function App() {
           setImageGallery((current) => (current ? { ...current, index } : current))
         }
       />
-      {exportMode && <DeploymentExporter />}
     </>
   )
 }
